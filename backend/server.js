@@ -24,6 +24,79 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// --- AUTH ENDPOINTS ---
+app.post('/api/auth/register', async (req, res) => {
+  const { role, email, password, name, phone, companyName, adminCode } = req.body;
+  try {
+    const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+    if (existing.length > 0) return res.status(400).json({ error: 'Email sudah terdaftar.' });
+
+    const [result] = await db.query(
+      'INSERT INTO users (role, email, password, name, phone, company_name, admin_code) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [role, email, password, name, phone, companyName || null, adminCode || null]
+    );
+    res.status(201).json({ success: true, id: result.insertId });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password, role } = req.body;
+  try {
+    const [users] = await db.query('SELECT * FROM users WHERE email = ? AND password = ? AND role = ?', [email, password, role]);
+    if (users.length === 0) return res.status(401).json({ error: 'Email, password, atau role tidak cocok.' });
+    
+    const user = users[0];
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        role: user.role,
+        email: user.email,
+        name: user.name,
+        phone: user.phone,
+        companyInfo: user.company_name ? { name: user.company_name } : null,
+        profile: {
+          cvUrl: user.cv_url,
+          skills: user.skills ? JSON.parse(user.skills) : []
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/users/:id/profile', async (req, res) => {
+  const { id } = req.params;
+  const { cvUrl, skills } = req.body;
+  try {
+    const updates = [];
+    const values = [];
+    if (cvUrl !== undefined) { updates.push('cv_url = ?'); values.push(cvUrl); }
+    if (skills !== undefined) { updates.push('skills = ?'); values.push(JSON.stringify(skills)); }
+    
+    if (updates.length > 0) {
+      values.push(id);
+      await db.query(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, values);
+    }
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/users/:id/company', async (req, res) => {
+  const { id } = req.params;
+  const { companyName } = req.body;
+  try {
+    await db.query('UPDATE users SET company_name = ? WHERE id = ?', [companyName, id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // --- JOBS ENDPOINTS ---
 app.get('/api/jobs', async (req, res) => {
@@ -105,6 +178,36 @@ app.put('/api/applicants/:id/status', async (req, res) => {
   try {
     await db.query('UPDATE applicants SET status = ? WHERE id = ?', [status, id]);
     res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// For Pelamar Lamaran Saya
+app.get('/api/applications/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const [rows] = await db.query(`
+      SELECT a.*, j.title as job_title, j.kota as job_location, j.psikotes 
+      FROM applicants a 
+      JOIN jobs j ON a.job_id = j.id 
+      WHERE a.user_id = ? 
+      ORDER BY a.created_at DESC
+    `, [userId]);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/applications', async (req, res) => {
+  const { userId, jobId, name, cv } = req.body;
+  try {
+    const [result] = await db.query(
+      'INSERT INTO applicants (user_id, job_id, name, cv, match_score) VALUES (?, ?, ?, ?, ?)',
+      [userId, jobId, name, cv, Math.floor(Math.random() * 40) + 60] // mock score
+    );
+    res.status(201).json({ success: true, id: result.insertId });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

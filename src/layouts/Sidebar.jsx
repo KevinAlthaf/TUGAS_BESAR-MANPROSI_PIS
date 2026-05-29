@@ -17,7 +17,7 @@ export default function Sidebar() {
   ] : [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: Briefcase, label: 'Lowongan', path: '/lowongan' },
-    { icon: Users, label: 'Pelamar', path: '/pelamar' },
+    { icon: Users, label: 'Pelamar', path: '/data-pelamar' },
     { icon: Calendar, label: 'Kelola Wawancara', path: '/wawancara' },
     { icon: Sparkles, label: 'Rekomendasi Kandidat', path: '/rekomendasi' },
   ];

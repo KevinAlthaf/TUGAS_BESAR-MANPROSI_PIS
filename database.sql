@@ -39,9 +39,32 @@ INSERT INTO `jobs` (`title`, `department`, `kota`, `pendidikan`, `jenis_pekerjaa
 ('Product Manager', 'Product', 'Bandung', 'S1', 'Full-time', 'WFH', 'Keduanya', 'Bebas', 'Memimpin pengembangan produk dari ideasi hingga peluncuran.', 'Senin - Jumat, Flexible', 0, '');
 
 
+-- Table for Users
+CREATE TABLE IF NOT EXISTS `users` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `role` varchar(50) NOT NULL,
+  `email` varchar(255) NOT NULL UNIQUE,
+  `password` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `phone` varchar(50) DEFAULT NULL,
+  `company_name` varchar(255) DEFAULT NULL,
+  `admin_code` varchar(255) DEFAULT NULL,
+  `cv_url` varchar(255) DEFAULT NULL,
+  `skills` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `users` (`role`, `email`, `password`, `name`, `phone`, `company_name`) VALUES 
+('Pelamar', 'budi@gmail.com', 'password123', 'Budi Santoso', '081234567890', NULL),
+('Pelamar', 'siti@gmail.com', 'password123', 'Siti Aminah', '081234567891', NULL),
+('HRD', 'hrd@perusahaan.com', 'password123', 'Bapak HRD', '081234567892', 'PT. Inovasi Teknologi');
+
+
 -- Table for Applicants
 CREATE TABLE IF NOT EXISTS `applicants` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) DEFAULT NULL,
   `job_id` int(11) NOT NULL,
   `name` varchar(255) NOT NULL,
   `match_score` int(11) NOT NULL DEFAULT 0,
@@ -55,14 +78,13 @@ CREATE TABLE IF NOT EXISTS `applicants` (
   `interview_conclusion` varchar(100) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`job_id`) REFERENCES `jobs`(`id`) ON DELETE CASCADE
+  FOREIGN KEY (`job_id`) REFERENCES `jobs`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `applicants` (`job_id`, `name`, `match_score`, `status`, `cv`, `ai_strengths`, `ai_weaknesses`, `ai_conclusion`, `interview_score`, `interview_notes`, `interview_conclusion`) VALUES
-(1, 'Budi Santoso', 92, 'Menunggu', 'budi_cv.pdf', '["Pengalaman React 3 tahun","Familiar dengan Tailwind"]', '["Belum pernah memimpin tim"]', 'Kandidat sangat cocok untuk posisi ini secara teknis.', NULL, NULL, NULL),
-(1, 'Siti Aminah', 85, 'Interview', 'siti_cv.pdf', '["Portfolio UI/UX yang kuat","Menguasai Vue.js"]', '["Kurang pengalaman di React.js"]', 'Cocok, namun butuh waktu adaptasi framework.', 88, 'Komunikasi baik, technical test cukup memuaskan.', 'Layak Diterima'),
-(2, 'Andi Wijaya', 78, 'Menunggu', 'andi_cv.pdf', '["Sertifikasi Scrum Master","Pengalaman di Startup"]', '["Tidak ada latar belakang IT"]', 'Perlu dicek pemahaman teknisnya saat interview.', NULL, NULL, NULL),
-(2, 'Rina Kartika', 95, 'Menunggu', 'rina_cv.pdf', '["Mantan Lead Product","Background Computer Science","Pengalaman B2B"]', '["-"]', 'Kandidat top prioritas.', NULL, NULL, NULL);
+INSERT INTO `applicants` (`user_id`, `job_id`, `name`, `match_score`, `status`, `cv`, `ai_strengths`, `ai_weaknesses`, `ai_conclusion`, `interview_score`, `interview_notes`, `interview_conclusion`) VALUES
+(1, 1, 'Budi Santoso', 92, 'Menunggu', 'budi_cv.pdf', '["Pengalaman React 3 tahun","Familiar dengan Tailwind"]', '["Belum pernah memimpin tim"]', 'Kandidat sangat cocok untuk posisi ini secara teknis.', NULL, NULL, NULL),
+(2, 1, 'Siti Aminah', 85, 'Interview', 'siti_cv.pdf', '["Portfolio UI/UX yang kuat","Menguasai Vue.js"]', '["Kurang pengalaman di React.js"]', 'Cocok, namun butuh waktu adaptasi framework.', 88, 'Komunikasi baik, technical test cukup memuaskan.', 'Layak Diterima');
 
 
 -- Table for Support Messages

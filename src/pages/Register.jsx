@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
-export default function Login() {
-  const { login } = useAuth();
+export default function Register() {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [activeRole, setActiveRole] = useState('Pelamar');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  
+
   const [formData, setFormData] = useState({
+    namaLengkap: '',
     email: '',
-    password: ''
+    password: '',
+    namaPerusahaan: '',
+    nomorWhatsapp: '',
+    kodeAdmin: ''
   });
 
   const handleChange = (e) => {
@@ -28,20 +32,23 @@ export default function Login() {
     if (activeRole === 'HR') roleToLogin = 'HRD';
     if (activeRole === 'Admin') roleToLogin = 'Operator';
 
-    const res = await login(formData.email, formData.password, roleToLogin);
-    
-    setIsLoading(false);
+    const res = await register({
+      role: roleToLogin,
+      name: formData.namaLengkap,
+      email: formData.email,
+      password: formData.password,
+      phone: formData.nomorWhatsapp,
+      companyName: roleToLogin === 'HRD' ? formData.namaPerusahaan : null,
+      adminCode: roleToLogin === 'Operator' ? formData.kodeAdmin : null
+    });
 
-    if (res === true || res.success) {
-      if (roleToLogin === 'HRD') {
-        navigate('/onboarding');
-      } else if (roleToLogin === 'Pelamar') {
-        navigate('/pelamar/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
+    setIsLoading(false);
+    
+    if (res.success) {
+      alert('Registrasi Berhasil! Silakan masuk.');
+      navigate('/login');
     } else {
-      setErrorMsg(res.message || 'Login gagal.');
+      setErrorMsg(res.message || 'Gagal registrasi.');
     }
   };
 
@@ -83,9 +90,9 @@ export default function Login() {
         </div>
 
         {/* Right side */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center bg-white p-8">
-          <div className="w-full max-w-md">
-            <h2 className="text-3xl font-serif text-gray-900 mb-8 text-center md:text-left">Masuk Ke Akun Anda</h2>
+        <div className="w-full lg:w-1/2 flex items-center justify-center bg-white p-8 overflow-y-auto">
+          <div className="w-full max-w-md my-auto">
+            <h2 className="text-3xl font-serif text-gray-900 mb-8 text-center md:text-left">Daftar Akun Baru</h2>
             
             {/* Role Selection Tabs */}
             <div className="flex p-1 bg-gray-100 rounded-lg mb-8 shadow-inner">
@@ -112,6 +119,40 @@ export default function Login() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              
+              {/* Dynamic Fields based on Role */}
+              {activeRole === 'HR' && (
+                <div className="relative">
+                  <label className="absolute -top-2.5 left-3 bg-white px-1 text-xs font-medium text-gray-600">
+                    Nama Perusahaan
+                  </label>
+                  <input 
+                    type="text" 
+                    name="namaPerusahaan"
+                    value={formData.namaPerusahaan}
+                    onChange={handleChange}
+                    placeholder="Ketikkan Nama Perusahaan anda dengan lengkap" 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                    required 
+                  />
+                </div>
+              )}
+
+              <div className="relative">
+                <label className="absolute -top-2.5 left-3 bg-white px-1 text-xs font-medium text-gray-600">
+                  Nama Lengkap
+                </label>
+                <input 
+                  type="text" 
+                  name="namaLengkap"
+                  value={formData.namaLengkap}
+                  onChange={handleChange}
+                  placeholder="Ketikkan nama lengkap" 
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                  required 
+                />
+              </div>
+
               <div className="relative">
                 <label className="absolute -top-2.5 left-3 bg-white px-1 text-xs font-medium text-gray-600">
                   Email
@@ -130,6 +171,45 @@ export default function Login() {
                 />
               </div>
               
+              {activeRole !== 'Admin' && (
+                <div className="relative">
+                  <label className="absolute -top-2.5 left-3 bg-white px-1 text-xs font-medium text-gray-600">
+                    Nomor WhatsApp anda
+                  </label>
+                  <div className="flex">
+                    <span className="inline-flex items-center px-4 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-green-600 font-medium">
+                      +62
+                    </span>
+                    <input 
+                      type="tel" 
+                      name="nomorWhatsapp"
+                      value={formData.nomorWhatsapp}
+                      onChange={handleChange}
+                      placeholder="Ketik Tanpa angka 0 didepan" 
+                      className="w-full border border-gray-300 rounded-r-lg px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                      required 
+                    />
+                  </div>
+                </div>
+              )}
+
+              {activeRole === 'Admin' && (
+                <div className="relative">
+                  <label className="absolute -top-2.5 left-3 bg-white px-1 text-xs font-medium text-gray-600">
+                    Kode Akses Admin
+                  </label>
+                  <input 
+                    type="text" 
+                    name="kodeAdmin"
+                    value={formData.kodeAdmin}
+                    onChange={handleChange}
+                    placeholder="Masukkan kode unik admin" 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                    required 
+                  />
+                </div>
+              )}
+
               <div className="relative">
                 <label className="absolute -top-2.5 left-3 bg-white px-1 text-xs font-medium text-gray-600">
                   Password
@@ -139,16 +219,19 @@ export default function Login() {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="••••••••••••" 
+                  placeholder="Ketikkan Password..." 
                   className="w-full border border-gray-300 rounded-lg px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
                   required 
                 />
               </div>
 
-              <div className="flex justify-end pt-2">
-                <a href="#" className="text-sm text-blue-400 hover:text-blue-600 transition-colors">
-                  Lupa Kata Sandi?
-                </a>
+              <div className="flex items-start mt-4">
+                <div className="flex items-center h-5">
+                  <input id="terms" type="checkbox" className="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-blue-300" required />
+                </div>
+                <label htmlFor="terms" className="ml-2 text-xs text-gray-500">
+                  Dengan mendaftar, saya menyetujui <a href="#" className="text-blue-600 hover:underline">Persyaratan dan Kebijakan Privasi</a>.
+                </label>
               </div>
 
               <button 
@@ -162,13 +245,13 @@ export default function Login() {
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                 ) : (
-                  'Masuk'
+                  'Daftar'
                 )}
               </button>
             </form>
 
             <p className="text-center text-sm text-gray-500 mt-8">
-              Blum punya akun? <Link to="/register" className="text-blue-400 hover:text-blue-600 hover:underline transition-colors">Daftar GRATIS</Link>
+              Sudah punya akun? <Link to="/login" className="text-blue-400 hover:text-blue-600 hover:underline transition-colors">Masuk</Link>
             </p>
           </div>
         </div>

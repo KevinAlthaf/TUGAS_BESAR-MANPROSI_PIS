@@ -3,9 +3,13 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import CompanyInfoForm from './pages/CompanyInfoForm';
 import MainLayout from './layouts/MainLayout';
+import PelamarLayout from './layouts/PelamarLayout';
 import DashboardHome from './pages/DashboardHome';
+import DashboardPelamar from './pages/DashboardPelamar';
+import ProfilePelamar from './pages/ProfilePelamar';
 import Lowongan from './pages/Lowongan';
 import Pelamar from './pages/Pelamar';
 import Wawancara from './pages/Wawancara';
@@ -13,6 +17,8 @@ import Rekomendasi from './pages/Rekomendasi';
 import KelolaPsikotes from './pages/KelolaPsikotes';
 import PesanSupport from './pages/PesanSupport';
 import InterviewRoom from './pages/InterviewRoom';
+import StatusLamaran from './pages/StatusLamaran';
+import PsikotestPelamar from './pages/PsikotestPelamar';
 import Pengaturan from './pages/Pengaturan';
 
 // Protected Route Component
@@ -24,6 +30,8 @@ const ProtectedRoute = ({ children, requireRole }) => {
   }
   
   if (requireRole && user.role !== requireRole) {
+    // Redirect based on their actual role
+    if (user.role === 'Pelamar') return <Navigate to="/pelamar/dashboard" replace />;
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -35,11 +43,20 @@ const ProtectedRoute = ({ children, requireRole }) => {
   return children;
 };
 
+// Root Redirect Component
+const RootRedirect = () => {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role === 'Pelamar') return <Navigate to="/pelamar/dashboard" replace />;
+  return <Navigate to="/dashboard" replace />;
+};
+
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<RootRedirect />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
       <Route 
         path="/onboarding" 
         element={
@@ -58,7 +75,23 @@ function AppRoutes() {
         } 
       />
 
-      {/* Dashboard Routes wrapped in MainLayout */}
+      {/* Pelamar Routes wrapped in PelamarLayout */}
+      <Route 
+        path="/pelamar" 
+        element={
+          <ProtectedRoute requireRole="Pelamar">
+            <PelamarLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="dashboard" element={<DashboardPelamar />} />
+        <Route path="profile" element={<ProfilePelamar />} />
+        <Route path="status-lamaran" element={<StatusLamaran />} />
+        <Route path="psikotest/:id" element={<PsikotestPelamar />} />
+        <Route path="*" element={<Navigate to="dashboard" replace />} />
+      </Route>
+
+      {/* Dashboard Routes wrapped in MainLayout (HRD & Operator) */}
       <Route 
         path="/" 
         element={
@@ -69,7 +102,7 @@ function AppRoutes() {
       >
         <Route path="dashboard" element={<DashboardHome />} />
         <Route path="lowongan" element={<Lowongan />} />
-        <Route path="pelamar" element={<Pelamar />} />
+        <Route path="data-pelamar" element={<Pelamar />} />
         <Route path="wawancara" element={<Wawancara />} />
         <Route path="rekomendasi" element={<Rekomendasi />} />
         <Route path="kelola-psikotes" element={<ProtectedRoute requireRole="Operator"><KelolaPsikotes /></ProtectedRoute>} />
