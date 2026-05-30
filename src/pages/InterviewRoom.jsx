@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { MonitorUp, Settings, Mic, MicOff, Video, VideoOff, MessageSquare, Clock, X, Send } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function InterviewRoom() {
   const { id } = useParams();
@@ -11,6 +12,7 @@ export default function InterviewRoom() {
   const roomName = queryParams.get('roomName') || 'Interview Session';
 
   const { applicants } = useData();
+  const { user } = useAuth();
   const applicant = applicants.find(a => a.id === parseInt(id));
 
   // Controls State
@@ -131,11 +133,19 @@ export default function InterviewRoom() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const handleEndSession = () => {
+  const handleEndSession = async () => {
     // Stop tracks before leaving
     if (localStream) localStream.getTracks().forEach(t => t.stop());
     if (screenStream) screenStream.getTracks().forEach(t => t.stop());
-    navigate('/pelamar');
+    
+    if (user?.role === 'Pelamar') {
+      try {
+        await fetch(`http://localhost:5000/api/applications/finish-interview/${user.id}`, { method: 'PUT' });
+      } catch (err) {}
+      navigate('/pelamar/status-lamaran');
+    } else {
+      navigate('/dashboard');
+    }
   };
 
   const handleSendMessage = (e) => {
@@ -180,7 +190,7 @@ export default function InterviewRoom() {
               </div>
             )}
             <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-lg text-white text-xs font-medium">
-              Anda (HRD) {!isMicOn && ' - Muted'}
+              Anda ({user?.role === 'HRD' ? 'HRD' : 'Pelamar'}) {!isMicOn && ' - Muted'}
             </div>
           </div>
 
@@ -201,7 +211,7 @@ export default function InterviewRoom() {
               />
             )}
             <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-lg text-white text-xs font-medium">
-              {isScreenSharing ? 'Layar Anda' : (applicant ? applicant.name : 'Pelamar')}
+              {isScreenSharing ? 'Layar Anda' : (user?.role === 'Pelamar' ? 'HRD' : (applicant ? applicant.name : 'Pelamar'))}
             </div>
           </div>
         </div>

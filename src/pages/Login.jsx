@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [activeRole, setActiveRole] = useState('Pelamar');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -33,8 +35,16 @@ export default function Login() {
     setIsLoading(false);
 
     if (res === true || res.success) {
+      addToast('Login berhasil!', 'success');
+      
+      // We need to check if user has companyInfo from AuthContext, but res doesn't directly have user unless we change AuthContext.
+      // Wait, let's just go to dashboard, and MainLayout can check and show Toast? Or Login can fetch it.
+      // Actually, if roleToLogin === 'HRD', we can just show the toast unconditionally or let MainLayout handle it. Let's just navigate to dashboard. The user will be loaded in AuthContext.
       if (roleToLogin === 'HRD') {
-        navigate('/onboarding');
+        // We will just navigate to dashboard. We'll add the pop-up logic in MainLayout or let them see it here.
+        navigate('/dashboard');
+        // A simple timeout to let the AuthContext load the user, then we show toast. But wait, `addToast` works globally.
+        addToast('Jangan lupa lengkapi Informasi Perusahaan di menu Pengaturan Akun!', 'info', 10000);
       } else if (roleToLogin === 'Pelamar') {
         navigate('/pelamar/dashboard');
       } else {
