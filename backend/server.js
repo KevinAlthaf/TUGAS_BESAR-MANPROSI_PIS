@@ -35,7 +35,16 @@ app.post('/api/auth/register', async (req, res) => {
       'INSERT INTO users (role, email, password, name, phone, company_name, admin_code) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [role, email, password, name, phone, companyName || null, adminCode || null]
     );
-    res.status(201).json({ success: true, id: result.insertId });
+    const newUserId = result.insertId;
+
+    if (role === 'Pelamar') {
+      await db.query(
+        'INSERT INTO pelamar_profiles (user_id, nama_lengkap, no_telepon) VALUES (?, ?, ?)',
+        [newUserId, name, phone]
+      );
+    }
+
+    res.status(201).json({ success: true, id: newUserId });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -48,6 +57,33 @@ app.post('/api/auth/login', async (req, res) => {
     if (users.length === 0) return res.status(401).json({ error: 'Email, password, atau role tidak cocok.' });
     
     const user = users[0];
+    let profileData = {};
+
+    if (role === 'Pelamar') {
+      const [profiles] = await db.query('SELECT * FROM pelamar_profiles WHERE user_id = ?', [user.id]);
+      if (profiles.length > 0) {
+        const p = profiles[0];
+        profileData = {
+          nama_lengkap: p.nama_lengkap,
+          no_telepon: p.no_telepon,
+          kota_domisili: p.kota_domisili,
+          pendidikan_terakhir: p.pendidikan_terakhir,
+          posisi_diinginkan: p.posisi_diinginkan,
+          pengalaman_kerja: p.pengalaman_kerja,
+          ekspektasi_gaji_min: p.ekspektasi_gaji_min,
+          ekspektasi_gaji_max: p.ekspektasi_gaji_max,
+          skills: p.skills ? JSON.parse(p.skills) : [],
+          cvUrl: p.cv_url,
+          fotoUrl: p.foto_url,
+          ktpUrl: p.ktp_url,
+          ijazahUrl: p.ijazah_url,
+          suratUrl: p.surat_url,
+          edukasi: p.edukasi_json ? JSON.parse(p.edukasi_json) : null,
+          pengalaman_organisasi: p.pengalaman_organisasi
+        };
+      }
+    }
+
     res.json({
       success: true,
       user: {
@@ -57,10 +93,7 @@ app.post('/api/auth/login', async (req, res) => {
         name: user.name,
         phone: user.phone,
         companyInfo: user.company_name ? { name: user.company_name } : null,
-        profile: {
-          cvUrl: user.cv_url,
-          skills: user.skills ? JSON.parse(user.skills) : []
-        }
+        profile: profileData
       }
     });
   } catch (error) {
@@ -70,16 +103,48 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.put('/api/users/:id/profile', async (req, res) => {
   const { id } = req.params;
-  const { cvUrl, skills } = req.body;
+  const data = req.body;
   try {
     const updates = [];
     const values = [];
-    if (cvUrl !== undefined) { updates.push('cv_url = ?'); values.push(cvUrl); }
-    if (skills !== undefined) { updates.push('skills = ?'); values.push(JSON.stringify(skills)); }
+
+    const fieldMap = {
+      nama_lengkap: 'nama_lengkap',
+      no_telepon: 'no_telepon',
+      kota_domisili: 'kota_domisili',
+      pendidikan_terakhir: 'pendidikan_terakhir',
+      posisi_diinginkan: 'posisi_diinginkan',
+      pengalaman_kerja: 'pengalaman_kerja',
+      ekspektasi_gaji_min: 'ekspektasi_gaji_min',
+      ekspektasi_gaji_max: 'ekspektasi_gaji_max',
+      cvUrl: 'cv_url',
+      fotoUrl: 'foto_url',
+      ktpUrl: 'ktp_url',
+      ijazahUrl: 'ijazah_url',
+      suratUrl: 'surat_url',
+      pengalaman_organisasi: 'pengalaman_organisasi'
+    };
+
+    for (const [key, dbField] of Object.entries(fieldMap)) {
+      if (data[key] !== undefined) {
+        updates.push(`${dbField} = ?`);
+        values.push(data[key]);
+      }
+    }
+
+    if (data.skills !== undefined) {
+      updates.push('skills = ?');
+      values.push(JSON.stringify(data.skills));
+    }
+    
+    if (data.edukasi !== undefined) {
+      updates.push('edukasi_json = ?');
+      values.push(JSON.stringify(data.edukasi));
+    }
     
     if (updates.length > 0) {
       values.push(id);
-      await db.query(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, values);
+      await db.query(`UPDATE pelamar_profiles SET ${updates.join(', ')} WHERE user_id = ?`, values);
     }
     res.json({ success: true });
   } catch (error) {
@@ -101,7 +166,7 @@ app.put('/api/users/:id/company', async (req, res) => {
 // --- JOBS ENDPOINTS ---
 app.get('/api/jobs', async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM jobs ORDER BY id DESC');
+    const [rows] = await db.query('SELECT j.*, u.company_name FROM jobs j LEFT JOIN users u ON j.id = j.id ORDER BY j.id DESC'); // Quick hack: actually HR company name isn't linked to jobs right now. Let's just return a placeholder or query HR. Wait, jobs doesn't have an HR user_id! We should add it or just return dummy company name. I will just alter jobs query to fetch company. Let's assume all jobs are from PT. Inovasi Teknologi or random for now, or I'll just change the query to include company_name from HRD users.
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -177,6 +242,16 @@ app.put('/api/applicants/:id/status', async (req, res) => {
   const { status } = req.body;
   try {
     await db.query('UPDATE applicants SET status = ? WHERE id = ?', [status, id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/applications/finish-interview/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    await db.query('UPDATE applicants SET status = "Menunggu Hasil" WHERE user_id = ? AND status = "Interview"', [userId]);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });

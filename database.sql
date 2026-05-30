@@ -127,7 +127,7 @@ FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `company_profile` WHERE `id` = 1);
 
 
--- Table for User Profile
+-- Table for User Profile (General/Operator)
 CREATE TABLE IF NOT EXISTS `user_profile` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nama_lengkap` varchar(255) DEFAULT '',
@@ -140,4 +140,33 @@ INSERT INTO `user_profile` (`id`, `nama_lengkap`, `email`, `no_whatsapp`)
 SELECT 1, '', '', ''
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `user_profile` WHERE `id` = 1);
+
+
+-- Table for Pelamar Profiles
+CREATE TABLE IF NOT EXISTS `pelamar_profiles` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `nama_lengkap` varchar(255) DEFAULT '',
+  `no_telepon` varchar(50) DEFAULT '',
+  `kota_domisili` varchar(100) DEFAULT '',
+  `pendidikan_terakhir` varchar(50) DEFAULT '',
+  `posisi_diinginkan` varchar(255) DEFAULT '',
+  `pengalaman_kerja` varchar(50) DEFAULT '',
+  `ekspektasi_gaji_min` int(11) DEFAULT NULL,
+  `ekspektasi_gaji_max` int(11) DEFAULT NULL,
+  `skills` text DEFAULT NULL,
+  `foto_url` varchar(255) DEFAULT NULL,
+  `ktp_url` varchar(255) DEFAULT NULL,
+  `ijazah_url` varchar(255) DEFAULT NULL,
+  `surat_url` varchar(255) DEFAULT NULL,
+  `edukasi_json` text DEFAULT NULL,
+  `pengalaman_organisasi` text DEFAULT NULL,
+  `cv_url` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `pelamar_profiles` (`user_id`, `nama_lengkap`, `no_telepon`) VALUES
+(1, 'Budi Santoso', '081234567890'),
+(2, 'Siti Aminah', '081234567891');
 

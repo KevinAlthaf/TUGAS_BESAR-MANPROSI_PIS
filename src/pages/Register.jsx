@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 export default function Register() {
   const navigate = useNavigate();
   const { register } = useAuth();
+  const { addToast } = useToast();
   const [activeRole, setActiveRole] = useState('Pelamar');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -14,6 +16,7 @@ export default function Register() {
     namaLengkap: '',
     email: '',
     password: '',
+    konfirmasiPassword: '',
     namaPerusahaan: '',
     nomorWhatsapp: '',
     kodeAdmin: ''
@@ -25,8 +28,19 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
     setErrorMsg('');
+
+    if (formData.password.length < 8) {
+      setErrorMsg('Password minimal harus 8 karakter.');
+      return;
+    }
+    
+    if (formData.password !== formData.konfirmasiPassword) {
+      setErrorMsg('Password dan Konfirmasi Password tidak cocok.');
+      return;
+    }
+
+    setIsLoading(true);
     
     let roleToLogin = activeRole;
     if (activeRole === 'HR') roleToLogin = 'HRD';
@@ -45,7 +59,7 @@ export default function Register() {
     setIsLoading(false);
     
     if (res.success) {
-      alert('Registrasi Berhasil! Silakan masuk.');
+      addToast('Registrasi Berhasil! Silakan masuk.', 'success');
       navigate('/login');
     } else {
       setErrorMsg(res.message || 'Gagal registrasi.');
@@ -219,7 +233,22 @@ export default function Register() {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="Ketikkan Password..." 
+                  placeholder="Minimal 8 karakter..." 
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                  required 
+                />
+              </div>
+
+              <div className="relative">
+                <label className="absolute -top-2.5 left-3 bg-white px-1 text-xs font-medium text-gray-600">
+                  Konfirmasi Password
+                </label>
+                <input 
+                  type="password" 
+                  name="konfirmasiPassword"
+                  value={formData.konfirmasiPassword}
+                  onChange={handleChange}
+                  placeholder="Ketik ulang password..." 
                   className="w-full border border-gray-300 rounded-lg px-4 py-3.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
                   required 
                 />

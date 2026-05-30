@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
+import { ToastProvider } from './context/ToastContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import CompanyInfoForm from './pages/CompanyInfoForm';
@@ -33,11 +34,6 @@ const ProtectedRoute = ({ children, requireRole }) => {
     // Redirect based on their actual role
     if (user.role === 'Pelamar') return <Navigate to="/pelamar/dashboard" replace />;
     return <Navigate to="/dashboard" replace />;
-  }
-
-  // If HRD hasn't filled company info, force them to onboarding
-  if (user.role === 'HRD' && !user.companyInfo && window.location.pathname !== '/onboarding') {
-    return <Navigate to="/onboarding" replace />;
   }
 
   return children;
@@ -119,9 +115,11 @@ export default function App() {
   return (
     <AuthProvider>
       <DataProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </ToastProvider>
       </DataProvider>
     </AuthProvider>
   );
